@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #7B1FA2;
+  --color-primary-dark: #4A148C;
+  --color-secondary: #1a1a1a;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-white text-gray-900;
+  }
+}
+
+.bg-gradient-purple {
+  background: linear-gradient(135deg, #7B1FA2 0%, #4A148C 100%);
+}
+
+.text-gradient-purple {
+  background: linear-gradient(135deg, #7B1FA2 0%, #4A148C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
