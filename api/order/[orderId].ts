@@ -1,5 +1,9 @@
 import type {VercelRequest, VercelResponse} from '@vercel/node';
-import {processOrderLookup} from '../../always-fit---complexo-b/server/fruitfy-handlers';
+
+async function loadOrderLookup() {
+  const mod = await import('../../always-fit---complexo-b/server/fruitfy-handlers.js');
+  return mod.processOrderLookup;
+}
 
 function singleQuery(q: string | string[] | undefined): string | undefined {
   if (q == null) return undefined;
@@ -19,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  const processOrderLookup = await loadOrderLookup();
   const orderId = singleQuery(req.query.orderId);
   const result = await processOrderLookup(orderId);
   for (const [k, v] of Object.entries(result.headers)) {
