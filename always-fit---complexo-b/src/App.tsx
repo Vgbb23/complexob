@@ -29,6 +29,34 @@ import { createPixCharge, getOrderStatus, type PixChargeResult } from './api/fru
 import { useUrlTracking } from './context/UrlTrackingContext';
 import { formatCep, formatCpf, formatPhoneBr, onlyDigits, validateCpf } from './lib/brFormat';
 
+/** Ofertas extras no checkout (valor somado ao total do PIX, mesmo fluxo de API). */
+const CHECKOUT_ORDER_BUMPS = [
+  {
+    id: 'pro3-magnesio',
+    title: 'PRO3 Magnésio',
+    price: 23.9,
+    image: 'https://i.ibb.co/LzmB7C4L/image.png',
+    description:
+      'Auxilia na redução do cansaço, melhora a disposição e contribui para a recuperação muscular. O complemento ideal para potencializar sua rotina.',
+  },
+  {
+    id: 'fits36',
+    title: 'FITS36',
+    price: 26.9,
+    image: 'https://i.ibb.co/3mkqMmxg/image.png',
+    description:
+      'Ajuda no controle do apetite, auxilia na aceleração do metabolismo e aumenta a disposição diária. Potencialize seus resultados com mais constância.',
+  },
+  {
+    id: 'omega3',
+    title: 'Ômega 3',
+    price: 21.9,
+    image: 'https://i.ibb.co/rfTxL4F6/image.png',
+    description:
+      'Contribui para foco, equilíbrio do organismo e saúde cardiovascular. Um complemento essencial para tornar sua suplementação ainda mais completa.',
+  },
+] as const;
+
 // --- Components ---
 
 const Checkout = ({ selectedPlan, onBack }: { selectedPlan: any, onBack: () => void }) => {
@@ -59,12 +87,21 @@ const Checkout = ({ selectedPlan, onBack }: { selectedPlan: any, onBack: () => v
   const [orderPaid, setOrderPaid] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const [cpfError, setCpfError] = useState<string | null>(null);
+  const [selectedBumps, setSelectedBumps] = useState<Record<string, boolean>>({});
 
   const cepDigits = onlyDigits(cep, 8);
 
   const basePrice = parseFloat(selectedPlan.price.replace(',', '.'));
   const shippingPrice = shippingMethod === 'sedex' ? 18.75 : 0;
-  const total = (basePrice * quantity) + shippingPrice;
+  const orderBumpsTotal = CHECKOUT_ORDER_BUMPS.reduce(
+    (sum, b) => sum + (selectedBumps[b.id] ? b.price : 0),
+    0,
+  );
+  const total = (basePrice * quantity) + shippingPrice + orderBumpsTotal;
+
+  const toggleOrderBump = (id: string) => {
+    setSelectedBumps((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const handleCepChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCep(e.target.value);
@@ -557,6 +594,55 @@ const Checkout = ({ selectedPlan, onBack }: { selectedPlan: any, onBack: () => v
               )}
             </div>
 
+            {/* Order bumps — antes do pagamento */}
+            <div className="bg-gradient-to-br from-primary/5 via-white to-purple-50/40 rounded-2xl p-5 shadow-sm border border-primary/15">
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">
+                Oferta exclusiva no checkout
+              </p>
+              <h3 className="text-base font-black text-secondary mb-1 leading-tight">
+                Complemente seu pedido e garanta ainda mais descontos
+              </h3>
+              <p className="text-xs text-gray-600 font-medium mb-4">
+                Selecione os itens abaixo e finalize em um único pagamento! — o valor é atualizado automaticamente.
+              </p>
+              <div className="space-y-3">
+                {CHECKOUT_ORDER_BUMPS.map((bump) => {
+                  const on = Boolean(selectedBumps[bump.id]);
+                  return (
+                    <button
+                      key={bump.id}
+                      type="button"
+                      onClick={() => toggleOrderBump(bump.id)}
+                      className={`w-full text-left rounded-2xl border-2 transition-all p-3 flex gap-3 items-start ${
+                        on ? 'border-primary bg-white shadow-md ring-1 ring-primary/20' : 'border-gray-100 bg-white/80 hover:border-gray-200'
+                      }`}
+                    >
+                      <div
+                        className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
+                          on ? 'border-primary bg-primary' : 'border-gray-300 bg-white'
+                        }`}
+                        aria-hidden
+                      >
+                        {on && <Check size={12} className="text-white" strokeWidth={3} />}
+                      </div>
+                      <div className="w-16 h-16 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <img src={bump.image} alt={bump.title} className="max-w-full max-h-full object-contain p-1" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 mb-1">
+                          <span className="font-black text-secondary text-sm uppercase leading-tight">{bump.title}</span>
+                          <span className="font-black text-primary text-sm whitespace-nowrap">
+                            R$ {bump.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-600 leading-snug font-medium">{bump.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Payment Method */}
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <div className="flex items-center gap-2.5 mb-5">
@@ -627,8 +713,19 @@ const Checkout = ({ selectedPlan, onBack }: { selectedPlan: any, onBack: () => v
                 </div>
                 <div className="flex justify-between text-gray-500 font-medium text-sm">
                   <span>Adicionais</span>
-                  <span className="text-secondary font-black">R$ 0,00</span>
+                  <span className="text-secondary font-black">
+                    R$ {orderBumpsTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
+                {orderBumpsTotal > 0 && (
+                  <ul className="text-[10px] text-gray-500 font-medium space-y-0.5 pl-1 border-l-2 border-primary/30">
+                    {CHECKOUT_ORDER_BUMPS.filter((b) => selectedBumps[b.id]).map((b) => (
+                      <li key={b.id} className="pl-2">
+                        + {b.title}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 
                 <div className="h-px bg-gray-100 my-5" />
                 
