@@ -88,6 +88,7 @@ const Checkout = ({ selectedPlan, onBack }: { selectedPlan: any, onBack: () => v
   const [cepError, setCepError] = useState<string | null>(null);
   const [cpfError, setCpfError] = useState<string | null>(null);
   const [selectedBumps, setSelectedBumps] = useState<Record<string, boolean>>({});
+  const [showPixAttentionModal, setShowPixAttentionModal] = useState(false);
 
   const cepDigits = onlyDigits(cep, 8);
 
@@ -151,6 +152,12 @@ const Checkout = ({ selectedPlan, onBack }: { selectedPlan: any, onBack: () => v
     pixData != null
       ? (pixData.amountCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
       : total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+  useEffect(() => {
+    if (step === 'success') {
+      setShowPixAttentionModal(true);
+    }
+  }, [step]);
 
   useEffect(() => {
     if (step !== 'success' || !pixData?.orderId || orderPaid) return;
@@ -245,6 +252,52 @@ const Checkout = ({ selectedPlan, onBack }: { selectedPlan: any, onBack: () => v
   if (step === 'success') {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4">
+        <AnimatePresence>
+          {showPixAttentionModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="pix-attention-title"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 text-center"
+              >
+                <h3
+                  id="pix-attention-title"
+                  className="text-2xl font-black text-secondary mb-4"
+                >
+                  Atenção!
+                </h3>
+                <p className="text-gray-600 font-medium leading-relaxed mb-6 text-left">
+                  Seu pagamento deve ser feito pela opção{' '}
+                  <b className="text-secondary">&quot;Pix Copia e Cola&quot;</b> dentro da área{' '}
+                  <b className="text-secondary">Pix do app do seu banco.</b> Basta copiar o código,
+                  colar e confirmar o pagamento. Compra realizada com segurança!
+                </p>
+                <img
+                  src="https://i.ibb.co/5gRVFn5D/image.png"
+                  alt="Como pagar com Pix Copia e Cola no app do banco"
+                  className="w-full rounded-2xl mb-6 object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPixAttentionModal(false)}
+                  className="w-full bg-primary text-white font-black py-4 rounded-2xl hover:bg-primary-dark transition-colors"
+                >
+                  Entendi
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="max-w-2xl mx-auto bg-white rounded-[40px] shadow-2xl overflow-hidden">
           <div className="bg-primary p-8 text-center text-white">
             <CheckCircle2 size={64} className="mx-auto mb-4" />
